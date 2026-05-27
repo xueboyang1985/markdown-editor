@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Online Markdown Editor — Live Preview HTML Export in Browser</title>
+<meta name="description" content="Write and preview Markdown in real time. Split pane editor with live HTML preview, export to HTML or Markdown. 100% browser-based, no upload, no signup.">
+<meta property="og:title" content="Free Online Markdown Editor — Live Preview, No Upload">
+<meta property="og:description" content="Write Markdown with live preview. Export HTML. 100% browser-based, no server, no tracking.">
+<link rel="canonical" href="https://xueboyang1985.github.io/markdown-editor/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Free Online Markdown Editor","operatingSystem":"Any","browserRequirements":"Modern browser","applicationCategory":"WebApplication","description":"Write and preview Markdown in your browser. Live preview, HTML export. 100% local."}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1a1a1a;line-height:1.6;height:100vh;display:flex;flex-direction:column;}
+.container{max-width:1200px;margin:0 auto;padding:20px;width:100%;flex:1;display:flex;flex-direction:column;}
+.header{text-align:center;padding:20px 0 16px;}
+.header h1{font-size:24px;margin-bottom:4px;}
+.header p{color:#64748b;font-size:14px;}
+.editor-wrapper{flex:1;display:flex;gap:0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:white;min-height:400px;}
+.editor-pane{flex:1;display:flex;flex-direction:column;border-right:1px solid #e2e8f0;}
+.preview-pane{flex:1;overflow-y:auto;padding:20px;background:white;}
+.editor-pane textarea{width:100%;flex:1;border:none;padding:20px;font-size:14px;font-family:'SF Mono','Fira Code','Consolas',monospace;line-height:1.7;resize:none;outline:none;}
+.editor-pane textarea:focus{outline:none;}
+.toolbar{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid #e2e8f0;background:#f8fafc;flex-wrap:wrap;}
+.toolbar .btn{padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:transparent;color:#475569;}
+.toolbar .btn:hover{background:#e2e8f0;}
+.toolbar .btn.active{background:#6366f1;color:white;}
+.toolbar .sep{width:1px;background:#e2e8f0;margin:4px 6px;}
+.preview-pane h1{font-size:24px;margin:16px 0 8px;}
+.preview-pane h2{font-size:20px;margin:14px 0 6px;}
+.preview-pane h3{font-size:16px;margin:12px 0 4px;}
+.preview-pane p{margin-bottom:12px;color:#475569;}
+.preview-pane pre{background:#f1f5f9;padding:16px;border-radius:6px;overflow-x:auto;margin:12px 0;}
+.preview-pane code{background:#f1f5f9;padding:2px 6px;border-radius:3px;font-size:13px;}
+.preview-pane pre code{background:none;padding:0;}
+.preview-pane ul,.preview-pane ol{padding-left:24px;margin-bottom:12px;color:#475569;}
+.preview-pane blockquote{border-left:3px solid #6366f1;padding:8px 16px;margin:12px 0;background:#f8fafc;color:#475569;}
+.preview-pane table{width:100%;border-collapse:collapse;margin:12px 0;}
+.preview-pane th,.preview-pane td{padding:8px 12px;border:1px solid #e2e8f0;text-align:left;font-size:13px;}
+.preview-pane th{background:#f8fafc;font-weight:600;}
+.preview-pane img{max-width:100%;border-radius:4px;}
+.preview-pane hr{border:none;border-top:1px solid #e2e8f0;margin:16px 0;}
+.status-bar{display:flex;justify-content:space-between;padding:6px 12px;background:#f8fafc;font-size:12px;color:#94a3b8;border-top:1px solid #e2e8f0;}
+.card{background:white;border-radius:12px;padding:16px;margin-top:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+.footer{text-align:center;padding:16px 0;color:#94a3b8;font-size:12px;}
+.free-hint{text-align:center;padding:8px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e;margin:8px 0;}
+.free-hint a{color:#6366f1;font-weight:600;text-decoration:none;cursor:pointer;}
+@media(max-width:768px){.editor-wrapper{flex-direction:column;}.editor-pane{border-right:none;border-bottom:1px solid #e2e8f0;min-height:300px;}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>Free Online Markdown Editor</h1>
+<p>Write Markdown with live preview — 100% in your browser, nothing uploaded</p>
+</div>
+
+<div class="free-hint" id="free-hint">Free: basic Markdown editing &middot; <a onclick="showProModal()">Get PRO</a> for export, themes &amp; more</div>
+
+<div class="card" style="padding:0;flex:1;display:flex;flex-direction:column;">
+<div class="toolbar">
+<button class="btn active" id="view-split" onclick="setView('split')">Split</button>
+<button class="btn" id="view-edit" onclick="setView('edit')">Edit</button>
+<button class="btn" id="view-preview" onclick="setView('preview')">Preview</button>
+<span class="sep"></span>
+<button class="btn" onclick="insertMd('**','**')"><b>B</b></button>
+<button class="btn" onclick="insertMd('*','*')"><i>I</i></button>
+<button class="btn" onclick="insertMd('`','`')">Code</button>
+<button class="btn" onclick="insertMd('[','](url)')">Link</button>
+<button class="btn" onclick="insertMd('![','](url)')">Img</button>
+<span class="sep"></span>
+<button class="btn" onclick="insertMd('# ','')">H1</button>
+<button class="btn" onclick="insertMd('## ','')">H2</button>
+<button class="btn" onclick="insertMd('- ','')">List</button>
+<button class="btn" onclick="insertMd('> ','')">Quote</button>
+<button class="btn" onclick="insertMd('```\n','\n```')">CodeBlock</button>
+<span class="sep"></span>
+<button class="btn" id="btn-export-html" onclick="exportHTML()">Export HTML</button>
+<button class="btn" id="btn-export-md" onclick="exportMD()">Export MD</button>
+<button class="btn" onclick="clearEditor()">Clear</button>
+</div>
+
+<div class="editor-wrapper" id="editor-wrapper">
+<div class="editor-pane" id="editor-pane">
+<textarea id="md-input" placeholder="Type Markdown here..." oninput="renderPreview()"># Hello Markdown!
+
+Start writing **Markdown** here. The preview updates in real time.
+
+## Features
+
+- **Bold** and *italic* text
+- `Inline code` and code blocks
+- [Links](https://example.com)
+- Lists and blockquotes
+
+> This is a blockquote.
+
+\`\`\`javascript
+console.log("Hello, world!");
+\`\`\`
+
+---
+
+Made with ❤️ using our [free browser tools](https://xueboyang1985.github.io/free-browser-tools/)</textarea>
+<div class="status-bar"><span id="word-count">Words: 0</span><span id="char-count">Chars: 0</span><span id="line-count">Lines: 1</span></div>
+</div>
+<div class="preview-pane" id="preview-pane"><div id="preview-content"></div></div>
+</div>
+</div>
+
+<div class="card" style="font-size:13px;text-align:center;">
+<p>
+<a href="https://xueboyang1985.github.io/image-compressor/">Image Compressor</a> &middot;
+<a href="https://xueboyang1985.github.io/image-resizer/">Image Resizer</a> &middot;
+<a href="https://xueboyang1985.github.io/word-counter/">Word Counter</a> &middot;
+<a href="https://xueboyang1985.github.io/color-picker/">Color Picker</a> &middot;
+<a href="https://xueboyang1985.github.io/qr-code-generator/">QR Code Generator</a> &middot;
+<a href="https://xueboyang1985.github.io/free-browser-tools/">All Tools</a>
+</p>
+</div>
+
+<div class="footer">
+<p>100% local &bull; No upload &bull; No server &bull; Your data never leaves your device</p>
+</div>
+</div>
+
+<div class="modal-overlay" id="pro-modal" style="display:none;" onclick="if(event.target===this)closeProModal()">
+<div class="modal">
+<h2>🚀 Markdown Editor PRO</h2>
+<p style="margin:12px 0;font-size:14px;color:#475569;">Unlock advanced Markdown features:</p>
+<ul style="font-size:14px;color:#475569;margin-bottom:16px;padding-left:20px;">
+<li>Export to PDF and DOCX</li>
+<li>Custom themes and CSS</li>
+<li>Table of contents generation</li>
+<li>Ad-free experience</li>
+<li>Works across all 17+ browser tools</li>
+</ul>
+<p style="font-weight:600;font-size:18px;margin-bottom:16px;">PRO Bundle — $19.99 <span style="font-size:13px;color:#94a3b8;font-weight:400;">one-time, 3 devices</span></p>
+<button class="btn btn-primary" onclick="buyBundle()" style="width:100%;">Get PRO Bundle $19.99</button>
+<p style="margin-top:12px;font-size:12px;color:#94a3b8;">Already purchased? <a onclick="showLicenseModal()" style="color:#6366f1;cursor:pointer;text-decoration:underline;">Enter license key</a></p>
+<p style="margin-top:8px;font-size:12px;color:#94a3b8;">Bundle includes this tool + 17+ other tools</p>
+</div>
+</div>
+
+<div class="modal-overlay" id="license-modal" style="display:none;" onclick="if(event.target===this)closeLicenseModal()">
+<div class="modal">
+<h2>Enter PRO License Key</h2>
+<input type="text" id="pro-key" placeholder="Paste your license key here" style="width:100%;padding:10px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;margin:12px 0;">
+<button class="btn btn-primary" onclick="actPRO()" style="width:100%;">Activate PRO</button>
+<p id="pro-status" style="margin-top:8px;font-size:13px;color:#64748b;"></p>
+</div>
+</div>
+
+<style>
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.modal{background:white;border-radius:12px;padding:24px;width:90%;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,0.2);}
+.modal h2{font-size:18px;}
+.btn-primary{background:#6366f1;color:white;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;}
+.btn-primary:hover{background:#4f46e5;}
+</style>
+
+<script>
+let pro = 0;
+try { pro = parseInt(localStorage.getItem('md_pro')) || 0; } catch(e) {}
+const BUNDLE_ID = 'xdlh1FHKAU0E7q3ZRuHPaw==';
+let currentView = 'split';
+
+// Minimal Markdown parser
+function mdToHtml(md) {
+  let html = md
+    // Escape HTML
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Images (before links)
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
+    // Links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+    // Bold + Italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Strikethrough
+    .replace(/~~(.+?)~~/g, '<del>$1</del>');
+
+  // Split into blocks
+  const lines = html.split('\n');
+  let result = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    let line = lines[i];
+
+    // HR
+    if (/^---$|^\*\*\*$|^___$/.test(line)) {
+      result.push('<hr>');
+      i++;
+      continue;
+    }
+
+    // Headers
+    const hMatch = line.match(/^(#{1,6})\s+(.+)/);
+    if (hMatch) {
+      const level = hMatch[1].length;
+      result.push('<h' + level + '>' + hMatch[2] + '</h' + level + '>');
+      i++;
+      continue;
+    }
+
+    // Code block
+    if (line.startsWith('```')) {
+      const lang = line.slice(3).trim();
+      let code = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```')) {
+        code.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      result.push('<pre><code>' + code.join('\n') + '</code></pre>');
+      continue;
+    }
+
+    // Blockquote
+    if (line.startsWith('> ')) {
+      let quote = [];
+      while (i < lines.length && lines[i].startsWith('> ')) {
+        quote.push(lines[i].slice(2));
+        i++;
+      }
+      result.push('<blockquote>' + quote.join('<br>') + '</blockquote>');
+      continue;
+    }
+
+    // Unordered list
+    if (line.match(/^[\-\*\+]\s/)) {
+      let items = [];
+      while (i < lines.length && lines[i].match(/^[\-\*\+]\s/)) {
+        items.push(lines[i].replace(/^[\-\*\+]\s/, ''));
+        i++;
+      }
+      result.push('<ul><li>' + items.join('</li><li>') + '</li></ul>');
+      continue;
+    }
+
+    // Ordered list
+    if (line.match(/^\d+\.\s/)) {
+      let items = [];
+      while (i < lines.length && lines[i].match(/^\d+\.\s/)) {
+        items.push(lines[i].replace(/^\d+\.\s/, ''));
+        i++;
+      }
+      result.push('<ol><li>' + items.join('</li><li>') + '</li></ol>');
+      continue;
+    }
+
+    // Empty line
+    if (line.trim() === '') {
+      i++;
+      continue;
+    }
+
+    // Paragraph
+    let para = [];
+    while (i < lines.length && lines[i].trim() !== '' && !lines[i].match(/^(#{1,6}\s|```|> |[\-\*\+]\s|\d+\.\s|---$|\*\*\*$|___$)/)) {
+      para.push(lines[i]);
+      i++;
+    }
+    if (para.length) {
+      result.push('<p>' + para.join('<br>') + '</p>');
+    } else {
+      i++;
+    }
+  }
+
+  return result.join('\n');
+}
+
+function renderPreview() {
+  const md = document.getElementById('md-input').value;
+  const html = mdToHtml(md);
+
+  if (currentView === 'edit') {
+    document.getElementById('preview-pane').style.display = 'none';
+    document.getElementById('editor-pane').style.borderRight = 'none';
+  } else if (currentView === 'preview') {
+    document.getElementById('preview-pane').style.display = 'block';
+    document.getElementById('editor-pane').style.display = 'none';
+  } else {
+    document.getElementById('preview-pane').style.display = 'block';
+    document.getElementById('editor-pane').style.display = 'flex';
+    document.getElementById('editor-pane').style.borderRight = '1px solid #e2e8f0';
+  }
+
+  document.getElementById('preview-content').innerHTML = html;
+
+  // Stats
+  const words = md.trim() ? md.trim().split(/\s+/).length : 0;
+  const chars = md.length;
+  const lines = md.split('\n').length;
+  document.getElementById('word-count').textContent = 'Words: ' + words;
+  document.getElementById('char-count').textContent = 'Chars: ' + chars;
+  document.getElementById('line-count').textContent = 'Lines: ' + lines;
+}
+
+function setView(view) {
+  currentView = view;
+  document.querySelectorAll('.toolbar .btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+
+  const ep = document.getElementById('editor-pane');
+  const pp = document.getElementById('preview-pane');
+
+  if (view === 'edit') {
+    ep.style.display = 'flex';
+    pp.style.display = 'none';
+  } else if (view === 'preview') {
+    ep.style.display = 'none';
+    pp.style.display = 'block';
+  } else {
+    ep.style.display = 'flex';
+    ep.style.borderRight = '1px solid #e2e8f0';
+    pp.style.display = 'block';
+  }
+}
+
+function insertMd(before, after) {
+  const ta = document.getElementById('md-input');
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const text = ta.value;
+  ta.value = text.slice(0, start) + before + text.slice(start, end) + after + text.slice(end);
+  ta.focus();
+  ta.selectionStart = start + before.length;
+  ta.selectionEnd = end + before.length;
+  renderPreview();
+}
+
+function exportHTML() {
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Markdown Export</title></head><body>' +
+    document.getElementById('preview-content').innerHTML + '</body></html>';
+  downloadFile(html, 'markdown-export.html', 'text/html');
+}
+
+function exportMD() {
+  downloadFile(document.getElementById('md-input').value, 'markdown-export.md', 'text/markdown');
+}
+
+function downloadFile(content, name, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name;
+  a.click();
+}
+
+function clearEditor() {
+  document.getElementById('md-input').value = '';
+  renderPreview();
+}
+
+// Init
+renderPreview();
+
+// PRO
+function showProModal() { document.getElementById('pro-modal').style.display = 'flex'; }
+function closeProModal() { document.getElementById('pro-modal').style.display = 'none'; }
+function showLicenseModal() { closeProModal(); document.getElementById('license-modal').style.display = 'flex'; }
+function closeLicenseModal() { document.getElementById('license-modal').style.display = 'none'; }
+function buyBundle() {
+  window.open('https://xuebo8.gumroad.com/l/skxcpj', 'gumroad', 'width=600,height=700');
+}
+
+async function tryBundleKey(k) {
+  try {
+    const r = await fetch('https://api.gumroad.com/v2/licenses/verify', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({product_id: BUNDLE_ID, license_key: k})
+    });
+    const d = await r.json();
+    return d.success && d.purchase;
+  } catch { return false; }
+}
+
+async function actPRO() {
+  const k = document.getElementById('pro-key').value.trim();
+  if (!k || k.length < 10) { document.getElementById('pro-status').textContent = 'Enter your license key.'; return; }
+  document.getElementById('pro-status').textContent = 'Verifying...';
+  if (await tryBundleKey(k)) {
+    pro = 1;
+    try { localStorage.setItem('md_pro', '1'); } catch(e) {}
+    closeLicenseModal();
+    document.getElementById('free-hint').innerHTML = 'PRO activated &mdash; export PDF, themes, TOC.';
+    location.reload();
+  } else {
+    document.getElementById('pro-status').textContent = 'Invalid license key. Check your Gumroad receipt.';
+  }
+}
+
+window.addEventListener('message', e => {
+  if (e.data && e.data.success && e.data.purchase) {
+    const input = document.getElementById('pro-key');
+    if (input) { input.value = e.data.license_key || ''; showLicenseModal(); }
+  }
+});
+
+if (pro) {
+  document.getElementById('free-hint').innerHTML = 'PRO activated &mdash; export PDF, themes, TOC.';
+}
+</script>
+</body>
+</html>
